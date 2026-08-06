@@ -38,6 +38,7 @@
 | [Quick Start Guide](#-quick-start-guide) | Installation and running the system |
 | [Mission Reports](#-mission-reports) | Output artifacts from a flight |
 | [Performance Benchmarks](#-performance-benchmarks) | Speed and accuracy metrics |
+| [Datasets](#-datasets) | Training data sources used |
 | [Research & Citation](#-research--citation) | Academic references |
 | [Roadmap](#-roadmap) | What's coming next |
 | [Contributing](#-contributing) | How to help |
@@ -86,7 +87,9 @@ The system operates as a continuous closed-loop mission:
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-> **📐 For detailed technical internals, threading models, protocol specs, and algorithm deep-dives — see [ARCHITECTURE.md](architecture.md)**
+> **📐 For detailed technical internals, threading models, protocol specs, and algorithm deep-dives — see [Architecture.md](Architecture.md)**
+
+> **📊 For training dataset sources and citations — see [DATASET.md](DATASET.md)**
 
 ---
 
@@ -243,7 +246,8 @@ EdgeFireUAV/
 │   └── wiring_diagram.pdf            #    Physical hardware wiring schematic
 │
 ├── README.md                         # ← You are here
-├── architecture.md                   #    Deep technical design document
+├── Architecture.md                   #    Deep technical design & hardware specification
+├── DATASET.md                        #    Training dataset sources and citations
 └── LICENSE
 ```
 
@@ -401,6 +405,23 @@ At the end of each flight, a comprehensive mission report is auto-generated and 
 
 ---
 
+## 🗃️ Datasets
+
+This project uses a combination of publicly available datasets for training and validation. See [DATASET.md](DATASET.md) for full download links, descriptions, and citation details.
+
+| Module | Dataset | Size | Purpose |
+|---|---|:---:|---|
+| **Fire Detection** | [DFire](https://github.com/gaia-solutions-on-demand/DFireDataset) | ~21,500 images | Fire & smoke detection (YOLO format) |
+| **Fire Detection** | [FLAME 2](https://ieee-dataport.org/open-access/flame-2-fire-detection-and-modeling-aerial-multi-spectral-image-dataset) | ~48,000 RGB/IR images | Aerial wildfire — RGB + thermal imagery |
+| **Person Detection** | [VisDrone](https://github.com/VisDrone/VisDrone-Dataset) | ~10,000 images | Pedestrian & object detection from drone altitude |
+| **Person Detection** | [COCO 2017](https://cocodataset.org) | ~118,000 images | General-purpose person bounding boxes |
+| **Pose Estimation** | [COCO Keypoints](https://cocodataset.org/#keypoints-2020) | Subset of COCO | Human joint keypoint labels |
+| **Pose Estimation** | [MPII Human Pose](https://human-pose.mpi-inf.mpg.de) | ~25,000 images | Articulated body pose estimation |
+| **Action Recognition** | [Okutama-Action](https://okutama-action.org) | ~77 video sequences | Aerial view walking/running/standing classification |
+| **Real-World Testing** | Custom Drone Videos | Project-specific | Collected by the project team for validation |
+
+---
+
 ## 📊 Performance Benchmarks
 
 Measured on Raspberry Pi 4 Model B (4GB RAM) — standard Pi OS, no GPU/TPU accelerator:
@@ -439,6 +460,12 @@ If you use this work in academic research, please cite:
 - Redmon, J., et al. "You Only Look Once: Unified, Real-Time Object Detection." CVPR 2016.
 - Google. "TensorFlow Lite: On-Device ML for Mobile and Edge Devices." 2019.
 - ArduPilot Development Team. "ArduPilot Autopilot Suite." https://ardupilot.org
+- Venâncio, P. V. A. B., et al. *An Automatic Fire Detection System Based on Deep CNNs for Low-Power Devices.* (DFire Dataset)
+- Chen, X., et al. *Wildland Fire Detection and Monitoring Using a Drone-Collected RGB/IR Image Dataset.* IEEE Access, 2022. (FLAME Dataset)
+- Zhu, P., et al. *Vision Meets Drones: A Challenge.* (VisDrone Dataset)
+- Barekatain, M., et al. *Okutama-Action: An Aerial View Video Dataset for Concurrent Human Action Detection.*
+
+> For complete dataset citations, see [DATASET.md](DATASET.md).
 
 ---
 
@@ -478,9 +505,8 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 <div align="center">
 
-**Built with ❤️ by Basil Joseph | Empowering first responders with intelligent technology**
+**Built with ❤️ by Basil Joseph & Grace Maria James | Empowering first responders with intelligent technology**
 
 ⭐ *Star this repo if you find it useful!*
 
 </div>
-#
