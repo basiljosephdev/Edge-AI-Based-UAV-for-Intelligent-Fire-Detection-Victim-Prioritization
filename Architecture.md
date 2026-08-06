@@ -26,34 +26,54 @@ The system is structured in three distinct, independently operable layers. These
 
 ```mermaid
 block-beta
-  columns 3
+  columns 4
 
-  block:UAV["UAV Airborne Platform"]:1
+  block:HW["Hardware Layer"]:1
     columns 1
-    A["⚙️ Avionics Layer\n(Pixhawk FC)"]
-    B["🧠 Companion Computer Layer\n(Raspberry Pi 4)"]
-    C["📡 RF Communications Layer\n(Telemetry + Wi-Fi)"]
+    A["📷 Raspberry Pi Camera V2"]
+    B["🧠 Raspberry Pi 4"]
+    C["⚙️ Pixhawk 2.4.8"]
+    D["📡 Telemetry Radio"]
   end
 
-  block:middle["Air-to-Ground Link"]:1
+  block:AI["AI Processing Layer"]:1
     columns 1
-    D["915MHz MAVLink\n(Flight telemetry)"]
-    E["Wi-Fi / RF\n(AI detection stream)"]
+    E["Frame Preprocessing"]
+    F["Fire Detection"]
+    G["Human Detection"]
+    H["Pose Estimation"]
+    I["Person Tracking"]
   end
 
-  block:GCS["Ground Control Station"]:1
+  block:DEC["Decision Layer"]:1
     columns 1
-    F["🖥️ FastAPI Gateway\n(WebSocket + REST)"]
-    G["📊 React Dashboard\n(Live visualization)"]
-    H["🗄️ Mission Database\n(SQLite / PostgreSQL)"]
+    J["⭐ Context-Aware Victim Prioritization Engine (CVPE)"]
   end
 
-  A --> D
+  block:APP["Application Layer"]:1
+    columns 1
+    K["Mission Report Generation"]
+    L["GPS Logging"]
+    M["Victim List Generation"]
+    N["Emergency Alerts"]
+    O["Ground Station Dashboard"]
+  end
+
+  A --> E
   B --> E
-  D --> F
   E --> F
   F --> G
-  F --> H
+  G --> H
+  H --> I
+  I --> J
+  J --> K
+  J --> L
+  J --> M
+  J --> N
+
+  C --> D
+  D --> O
+  J --> O
 ```
 
 ### Architectural Design Principles
@@ -73,44 +93,61 @@ block-beta
 
 ```mermaid
 graph TD
-    subgraph POWER["⚡ Power Distribution"]
-        BAT["4S LiPo\n14.8V / 5200mAh"] --> PDB["Power Distribution Board"]
-        PDB -->|"Direct 14.8V"| ESC["ESC×4 + Brushless\nMotors×4"]
-        PDB -->|"12V Step-Down BEC"| PIX_PWR["Pixhawk Power Module"]
-        PDB -->|"5V 3A UBEC"| PI_PWR["Raspberry Pi 4\nUSB-C Input"]
+
+    subgraph HARDWARE["Layer 1 — Hardware Layer"]
+
+        CAM["Raspberry Pi Camera V2"]
+        RPI["Raspberry Pi 4"]
+        PIX["Pixhawk 2.4.8"]
+        GPS["NEO-M8N GPS"]
+        TELEM["Telemetry Radio"]
+
+        CAM --> RPI
+        GPS --> PIX
+        PIX --> TELEM
+        PIX --> RPI
+
     end
 
-    subgraph AVIONICS["⚙️ Avionics Layer"]
-        PIX["Pixhawk 2.4.8\nFlight Controller"]
-        GPS_MOD["NEO-M8N GPS\n+ Compass"] -->|"I2C (Compass)\nSerial (NMEA)"| PIX
-        IMU["Internal IMU\n(MPU-6000 / ICM-42688)"] --- PIX
-        BAR["Barometric\nAltimeter (MS5611)"] --- PIX
-        RCX["RC Receiver\n(SBUS / PPM)"] -->|"SBUS Signal"| PIX
-        PIX_PWR --> PIX
+    subgraph AI["Layer 2 — AI Processing Layer"]
+
+        PRE["Frame Preprocessing"]
+        FIRE["Fire Detection"]
+        HUMAN["Human Detection"]
+        POSE["Pose Estimation"]
+        TRACK["Person Tracking"]
+
+        PRE --> FIRE
+        FIRE --> HUMAN
+        HUMAN --> POSE
+        POSE --> TRACK
+
     end
 
-    subgraph COMPANION["🧠 Companion Computer Layer"]
-        RPI["Raspberry Pi 4\n(4GB/8GB ARM Cortex-A72)"]
-        CAM["Pi Camera V2\n(8MP Sony IMX219)"] -->|"CSI-2 Ribbon (4-lane)"| RPI
-        FLIR["FLIR Lepton 3.5\nThermal *(Optional)*"] -->|"SPI + I2C"| RPI
-        SD["MicroSD 32GB+\n(Class 10/A2)"] --- RPI
-        PI_PWR --> RPI
+    subgraph DECISION["Layer 3 — Decision Layer"]
+
+        CVPE["Context-Aware Victim Prioritization Engine (CVPE)"]
+
     end
 
-    subgraph RF_LAYER["📡 Radio Layer"]
-        TELEM["Holybro Telemetry\n915MHz (Air Unit)"]
-        WIFI["Wi-Fi / Long-Range\nRF Module (5.8GHz)"]
+    subgraph APP["Layer 4 — Application Layer"]
+
+        REPORT["Mission Report"]
+        GPSLOG["GPS Logging"]
+        ALERT["Emergency Alerts"]
+        DASH["Ground Station Dashboard"]
+
     end
 
-    %% Cross-layer connections
-    PIX -->|"MAVLink Serial\nTELEM1 @ 57600 baud"| TELEM
-    PIX -->|"MAVLink Serial\nTELEM2 @ 921600 baud\n(TX→Pin8, RX→Pin10)"| RPI
-    RPI -->|"WebSocket JSON\nover USB Wi-Fi / RF"| WIFI
+    RPI --> PRE
+    TRACK --> CVPE
 
-    style POWER fill:#2d1b00,stroke:#ff8c00
-    style AVIONICS fill:#001a2d,stroke:#0088ff
-    style COMPANION fill:#1a2d00,stroke:#44ff00
-    style RF_LAYER fill:#2d002d,stroke:#cc00ff
+    CVPE --> REPORT
+    CVPE --> GPSLOG
+    CVPE --> ALERT
+    CVPE --> DASH
+
+    TELEM --> DASH
 ```
 
 ### 2.2 Physical Wiring Reference
@@ -167,28 +204,48 @@ Each module in `edge/src/` has a single well-defined responsibility. They commun
 
 ```mermaid
 graph LR
-    main["main.py\n(Orchestrator)"]
+
     cam["camera.py\n(Frame Source)"]
-    infer["inference.py\n(TFLite Runner)"]
+
+    preprocess["preprocessing.py\n(Frame Preprocessing)"]
+
+    fire["fire_detection.py\n(Fire Detection)"]
+
+    human["human_detection.py\n(Person Detection)"]
+
+    pose["pose_estimation.py\n(Pose Estimation)"]
+
+    track["tracking.py\n(Person Tracking)"]
+
     mav["mavlink_client.py\n(GPS & Telemetry)"]
-    gps_proj["gps_projector.py\n(Coord Estimator)"]
-    prio["priority.py\n(Score Engine)"]
+
+    gps_proj["gps_projector.py\n(Coordinate Estimator)"]
+
+    cvpe["priority.py\n(CVPE Engine)"]
+
     log["logger.py\n(SQLite Writer)"]
-    stream["streamer.py\n(WebSocket Sender)"]
 
-    main --> cam
-    main --> infer
-    main --> mav
-    main --> prio
-    main --> stream
+    dashboard["dashboard.py\nGround Station Dashboard"]
 
-    cam -->|"FrameQueue"| infer
-    infer -->|"DetectionQueue"| prio
-    mav -->|"TelemetryState"| gps_proj
-    mav -->|"TelemetryState"| prio
-    gps_proj -->|"VictimGPS"| prio
-    prio -->|"PriorityQueue"| log
-    prio -->|"PriorityQueue"| stream
+    cam --> preprocess
+
+    preprocess --> fire
+
+    fire --> human
+
+    human --> pose
+
+    pose --> track
+
+    track --> cvpe
+
+    mav --> gps_proj
+
+    gps_proj --> cvpe
+
+    cvpe --> log
+
+    cvpe --> dashboard
 ```
 
 ### Module Descriptions
@@ -450,14 +507,37 @@ flowchart TD
 
 Two completely separate communication channels are used to prevent AI telemetry from interfering with flight-critical MAVLink commands:
 
-```
-Airborne ─────────────────────────────────────────── Ground
- Pixhawk ──[Serial]──► RF Telemetry ──[915MHz]──► QGC / MP
-    ↑                                                 (flight ops)
-    │ MAVLink
-    │ (TELEM2)
-  RPi 4 ──[USB Wi-Fi / 5.8GHz RF]──────────────► GCS FastAPI
-                                                      (AI/victim data)
+```text
+Airborne Platform                           Ground Station
+
+Raspberry Pi Camera V2
+          │
+          ▼
+     Raspberry Pi 4
+          │
+          ▼
+      AI Pipeline
+          │
+          ▼
+        CVPE
+          │
+          ▼
+Mission Report + GPS + Alerts
+          │
+          ▼
+   Ground Dashboard
+
+Pixhawk 2.4.8
+          │
+          ▼
+ MAVLink Telemetry
+          │
+          ▼
+ Telemetry Radio Link
+          │
+          ▼
+ Mission Planner /
+ Ground Station
 ```
 
 ### 8.2 MAVLink Message Subscription
@@ -474,7 +554,7 @@ The MAVLink client subscribes to the following message types from the Pixhawk:
 
 ### 8.3 WebSocket GCS Payload Schema
 
-All AI detection data is pushed as JSON frames over WebSocket to the GCS FastAPI server. Two message types are defined:
+All AI detection data is packaged as structured JSON records and transmitted to the Ground Station Dashboard for mission monitoring, logging, and visualization. Two message types are defined:
 
 #### Type: `VICTIM_UPDATE`
 Sent every 100ms when victims are in the active priority queue.
@@ -616,35 +696,36 @@ erDiagram
 
 ## 10. GCS Backend Architecture
 
-The GCS backend (`gcs/server/`) is a FastAPI application serving three concerns simultaneously using async I/O:
+The Ground Control Station is responsible for mission monitoring, visualization, alert generation, and storage of mission data received from the onboard AI system.
 
 ```mermaid
 graph TD
-    subgraph Ingress["Inbound Connections"]
-        WS_IN["Drone WebSocket Client\n(onboard streamer)"]
-        HTTP["REST API Clients\nBrowser / Postman"]
-    end
 
-    subgraph FastAPI["FastAPI Application"]
-        Router["URL Router\n/ws/drone, /api/*, /ws/dashboard"]
-        WS_MANAGER["WebSocket Manager\n(Drone → Dashboard Fan-Out)"]
-        REST["REST Endpoints\n/api/missions, /api/victims,\n/api/reports/generate"]
-        DB_LAYER["Database Layer\n(SQLAlchemy async ORM)"]
-        REPORT["Report Generator\n(ReportLab PDF + JSON)"]
-    end
+    CVPE["Context-Aware Victim Prioritization Engine"]
 
-    subgraph Clients["Dashboard Consumers"]
-        REACT_WS["React Dashboard\n(WebSocket consumer)"]
-        QGC["QGroundControl\n(MAVLink, separate)"]
-    end
+    REPORT["Mission Reports"]
 
-    WS_IN --> Router
-    HTTP --> Router
-    Router --> WS_MANAGER
-    Router --> REST
-    WS_MANAGER -->|"Fan-out to all\nconnected dashboards"| REACT_WS
-    REST --> DB_LAYER
-    REST --> REPORT
+    GPS["GPS Logs"]
+
+    ALERT["Emergency Alerts"]
+
+    SQLITE["SQLite Database"]
+
+    DASH["Ground Station Dashboard"]
+
+    CVPE --> REPORT
+
+    CVPE --> GPS
+
+    CVPE --> ALERT
+
+    REPORT --> SQLITE
+
+    GPS --> SQLITE
+
+    ALERT --> SQLITE
+
+    SQLITE --> DASH
 ```
 
 ### WebSocket Fan-Out Logic
