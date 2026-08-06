@@ -483,5 +483,4 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ⭐ *Star this repo if you find it useful!*
 
 </div>
-#   E d g e - A I - B a s e d - U A V - f o r - I n t e l l i g e n t - F i r e - D e t e c t i o n - V i c t i m - P r i o r i t i z a t i o n  
- 
+#
