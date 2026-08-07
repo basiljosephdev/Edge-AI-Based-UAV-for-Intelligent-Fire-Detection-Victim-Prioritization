@@ -35,16 +35,16 @@ The defining innovation of this architecture is the **Context-Aware Victim Prior
 
 ```mermaid
 block-beta
-  columns 3
+  columns 4
 
-  block:UAV["UAV Airborne Platform"]:1
+  block:HW["Hardware Layer"]:1
     columns 1
     A["⚙️ Avionics Layer\n(Pixhawk 2.4.8)"]
     B["🧠 Edge AI Layer\n(Raspberry Pi 4)"]
     C["📡 Communication Layer\n(MAVLink + Telemetry)"]
   end
 
-  block:middle["Air-to-Ground Link"]:1
+  block:AI["AI Processing Layer"]:1
     columns 1
     D["915MHz MAVLink\n(Flight telemetry)"]
     E["UART Serial\n(Companion link)"]
@@ -57,12 +57,30 @@ block-beta
     H["📍 GPS Log\n(Mission Database)"]
   end
 
-  A --> D
+  block:APP["Application Layer"]:1
+    columns 1
+    K["Mission Report Generation"]
+    L["GPS Logging"]
+    M["Victim List Generation"]
+    N["Emergency Alerts"]
+    O["Ground Station Dashboard"]
+  end
+
+  A --> E
   B --> E
-  D --> F
   E --> F
   F --> G
-  F --> H
+  G --> H
+  H --> I
+  I --> J
+  J --> K
+  J --> L
+  J --> M
+  J --> N
+
+  C --> D
+  D --> O
+  J --> O
 ```
 
 ### Architectural Design Principles
@@ -133,10 +151,12 @@ graph TD
     TELEM -->|"915 MHz RF Link"| GND_STATION
     RPI -->|"USB / Telemetry"| GND_STATION
 
-    style POWER fill:#2d1b00,stroke:#ff8c00
-    style AVIONICS fill:#001a2d,stroke:#0088ff
-    style COMPANION fill:#1a2d00,stroke:#44ff00
-    style RF_LAYER fill:#2d002d,stroke:#cc00ff
+    CVPE --> REPORT
+    CVPE --> GPSLOG
+    CVPE --> ALERT
+    CVPE --> DASH
+
+    TELEM --> DASH
 ```
 
 ### 3.2 UAV Platform
@@ -598,7 +618,7 @@ The Raspberry Pi Camera Module V2 captures a continuous video stream via the CSI
 
 ```mermaid
 graph LR
-    main["main.py\n(Orchestrator)"]
+
     cam["camera.py\n(Frame Source)"]
     fire["fire_detector.py\n(YOLO11n Fire)"]
     human["human_detector.py\n(YOLO11n Human)"]
