@@ -1,0 +1,56 @@
+# EdgeFireUAV — Jetson Nano edge configuration
+
+serial:
+  port: /dev/ttyTHS1     # Jetson Nano 40-pin UART (connect to Pixhawk TELEM2)
+  baud: 921600
+  # Use "udp:127.0.0.1:14550" instead of a serial port when testing against
+  # ArduPilot SITL (simulation/run_sitl.sh) with no real flight controller attached.
+
+camera:
+  # Jetson Nano CSI camera (Raspberry Pi Camera Module V2 / IMX219) — sensor-id 0
+  # is the CAM0 port. width/height must match a mode the IMX219 driver supports.
+  sensor_id: 0
+  capture_width: 1280
+  capture_height: 720
+  display_width: 640
+  display_height: 480
+  fps: 21
+  flip_method: 0          # 0=none, 2=180 deg (set to 2 if the camera is mounted upside down)
+  horizontal_fov_deg: 62.2   # Pi Camera V2 horizontal field of view
+  vertical_fov_deg: 48.8     # Pi Camera V2 vertical field of view
+
+models:
+  # .engine files are TensorRT-built on THIS Jetson Nano (see
+  # models/training/build_tensorrt_engine.sh) — never copy a .engine built
+  # on a different device or JetPack version, it will fail to load.
+  fire_model_path: models/fire_detector.engine
+  posture_model_path: models/posture_detector.engine
+  # NOTE: order confirmed from the Kaggle D-Fire data.yaml's `names:` field —
+  # class 0 = smoke, class 1 = fire. This MUST match the order your actual
+  # trained model outputs, or fire/smoke will be swapped in every log and
+  # priority calculation. If you retrain on a different dataset, re-check this.
+  fire_classes: [smoke, fire]
+  posture_classes: [Lying, Sitting, Standing, Walking, Running]
+  score_threshold: 0.45
+  nms_iou_threshold: 0.45
+
+priority_weights:
+  posture:   0.5          # w1
+  proximity: 0.3          # w2
+  fire_severity: 0.2      # w3
+  d_max_meters: 30.0       # distance beyond which proximity contributes ~0
+
+database:
+  path: db/mission_log.sqlite
+
+streaming:
+  host: 0.0.0.0
+  port: 8765
+
+reporting:
+  output_dir: reports
+  drone_id: UAV-01
+
+loop:
+  target_hz: 10            # main loop rate; actual FPS will be lower, this just
+                            # paces GPS/log/stream updates

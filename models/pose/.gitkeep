@@ -1,0 +1,5 @@
+# Models directory: pose estimation models
+# Expected weights:
+# - yolo11n-pose.pt (official pretrained on COCO keypoints)
+# - yolo11n-pose.onnx
+# - yolo11n-pose.engine

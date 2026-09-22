@@ -1,0 +1,5 @@
+# Models directory: fire detection models
+# Expected weights:
+# - yolo11n_fire_dfire.pt (fine-tuned on DFire/FLAME)
+# - yolo11n_fire_dfire.onnx
+# - yolo11n_fire_dfire.engine

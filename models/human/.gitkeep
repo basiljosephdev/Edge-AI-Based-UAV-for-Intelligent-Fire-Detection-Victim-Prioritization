@@ -1,0 +1,6 @@
+# Models directory: human detection models
+# Expected weights:
+# - yolo11n.pt (official baseline pretrained on COCO)
+# - yolo11n_visdrone.pt (fine-tuned on VisDrone)
+# - yolo11n_visdrone.onnx
+# - yolo11n_visdrone.engine

@@ -1,0 +1,19 @@
+# EdgeFireUAV — Jetson Nano edge requirements
+#
+# NOTE on OpenCV: do NOT `pip install opencv-python` on a Jetson Nano — the
+# PyPI wheel is not built with GStreamer support, which nvarguscamerasrc
+# capture in camera.py requires. JetPack's stock OS image already ships a
+# GStreamer-enabled OpenCV system package; just make sure your virtualenv
+# has --system-site-packages so it can see it, or skip a virtualenv for cv2.
+#
+# NOTE on TensorRT + pycuda: do NOT `pip install tensorrt`. Both `tensorrt`
+# and `pycuda` come from JetPack itself (apt packages, e.g.
+# python3-libnvinfer / the pycuda that ships with the L4T ML container or is
+# built against your JetPack's CUDA). Confirm they're importable with:
+#   python3 -c "import tensorrt, pycuda.autoinit; print(tensorrt.__version__)"
+# before troubleshooting anything else in this project.
+
+pymavlink>=2.4.37
+PyYAML>=6.0
+websockets>=11.0
+numpy>=1.19,<1.24   # match the numpy version your JetPack's OpenCV/TensorRT build expects
