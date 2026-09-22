@@ -1,0 +1,14 @@
+[Unit]
+Description=EdgeFireUAV edge inference service (Jetson Nano)
+After=network.target
+
+[Service]
+Type=simple
+User=jetson
+WorkingDirectory=/home/jetson/EdgeFireUAV/edge
+ExecStart=/usr/bin/python3 /home/jetson/EdgeFireUAV/edge/main.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
