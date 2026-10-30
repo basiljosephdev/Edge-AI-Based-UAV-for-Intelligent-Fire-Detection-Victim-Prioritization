@@ -6,14 +6,14 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%204-C51A4A?logo=raspberrypi&logoColor=white)](https://www.raspberrypi.com/)
-[![AI Framework](https://img.shields.io/badge/AI-TensorFlow%20Lite-FF6F00?logo=tensorflow&logoColor=white)](https://www.tensorflow.org/lite)
+[![Platform](https://img.shields.io/badge/Platform-NVIDIA%20Jetson%20Nano-76B900?logo=nvidia&logoColor=white)](https://developer.nvidia.com/embedded/jetson-nano)
+[![AI Framework](https://img.shields.io/badge/AI-YOLOv8%20%7C%20TensorRT-00ADD8?logo=nvidia&logoColor=white)](https://github.com/ultralytics/ultralytics)
 [![Flight Stack](https://img.shields.io/badge/FC-ArduPilot%20%7C%20PX4-003B75)](https://ardupilot.org/)
 [![Status](https://img.shields.io/badge/Status-Active%20Research-brightgreen)]()
 
 <br/>
 
-> **An affordable, autonomous drone system designed to save lives during fire emergencies. Powered by a Raspberry Pi 4, it detects fire, finds victims, reads their condition, and directs rescue teams—all without a cloud connection, in real time.**
+> **An affordable, autonomous drone system designed to save lives during fire emergencies. Powered by an NVIDIA Jetson Nano with TensorRT FP16 acceleration, it detects fire and smoke, classifies victim postures (Lying, Sitting, Standing), and directs rescue teams—all without a cloud connection, in real time.**
 
 <br/>
 
@@ -120,7 +120,7 @@ Assigns a real-time priority score `P ∈ [0.0, 1.0]` per victim based on:
 Victims are ranked and displayed in a live queue so first responders know exactly who to rescue first.
 
 ### 📡 100% Offline Edge Processing
-All AI inference, priority calculation, GPS correlation, and data logging happen **onboard the Raspberry Pi 4**. The system is fully operational even with zero network connectivity.
+All AI inference, priority calculation, GPS correlation, and data logging happen **onboard the NVIDIA Jetson Nano**. The system is fully operational even with zero network connectivity.
 
 ### 📍 GPS-Tagged Victim Location Logging
 Every detected victim is geotagged with their estimated GPS coordinates (latitude, longitude, altitude), allowing rescue teams to navigate directly to them.
@@ -158,9 +158,9 @@ The GCS provides firefighters and incident commanders with a live operational pi
 | 3 | **ESCs** | 30A Electronic Speed Controllers (×4) | Motor speed control | ~$20 |
 | 4 | **Propellers** | 1045 CW/CCW Carbon Fiber (×4) | Lift generation | ~$8 |
 | 5 | **Flight Controller** | Pixhawk 2.4.8 (ArduPilot) | Navigation, stabilization, attitude control | ~$70 |
-| 6 | **Edge Computer** | Raspberry Pi 4 Model B (4GB RAM) | Onboard AI inference & mission logic | ~$55 |
+| 6 | **Edge Computer** | NVIDIA Jetson Nano Model B (4GB RAM) | Onboard AI inference & mission logic | ~$55 |
 | 7 | **Primary Camera** | Raspberry Pi Camera Module V2 | RGB video input for AI models | ~$25 |
-| 8 | **Thermal Camera** *(Optional)* | FLIR Lepton 3.5 | Infrared imaging for night/smoke ops | ~$200 |
+| 8 | **Thermal Camera** *(Optional)* | Raspberry Pi Camera Module V2 | Infrared imaging for night/smoke ops | ~$200 |
 | 9 | **GPS Module** | NEO-M8N with Compass | Flight nav & victim geotagging | ~$18 |
 | 10 | **Telemetry Radios** | Holybro 915MHz (Air + Ground pair) | Real-time GCS data link | ~$35 |
 | 11 | **Battery** | 4S 5200mAh LiPo | Main flight power (~18 min flight time) | ~$30 |
@@ -174,11 +174,11 @@ The GCS provides firefighters and incident commanders with a live operational pi
 
 ## 💻 Software Stack
 
-### Onboard (Raspberry Pi 4)
+### Onboard (NVIDIA Jetson Nano)
 | Layer | Technology | Purpose |
 |---|---|---|
 | **OS** | Raspberry Pi OS Lite 64-bit | Lightweight headless operating system |
-| **AI Runtime** | TensorFlow Lite 2.x | Low-latency INT8 quantized model execution |
+| **AI Runtime** | YOLOv8n / TensorRT FP16 2.x | Low-latency INT8 quantized model execution |
 | **Computer Vision** | OpenCV 4.x (NEON-optimized) | Frame capture, preprocessing, drawing |
 | **UAV Interface** | PyMAVLink / MAVSDK-Python | Serial communication with Pixhawk FC |
 | **Database** | SQLite 3 | Local mission logging and victim records |
@@ -256,7 +256,7 @@ EdgeFireUAV/
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
-- Raspberry Pi 4 (4GB+ RAM) running **Raspberry Pi OS Lite 64-bit**
+- NVIDIA Jetson Nano (4GB+ RAM) running **Raspberry Pi OS Lite 64-bit**
 - Python 3.9+ installed on both the Pi and GCS laptop
 - Node.js 18+ installed on the GCS laptop
 - USB or serial connection between Pi and Pixhawk (TELEM2 port)
@@ -424,7 +424,7 @@ This project uses a combination of publicly available datasets for training and 
 
 ## 📊 Performance Benchmarks
 
-Measured on Raspberry Pi 4 Model B (4GB RAM) — standard Pi OS, no GPU/TPU accelerator:
+Measured on NVIDIA Jetson Nano Model B (4GB RAM) — standard Pi OS, no GPU/TPU accelerator:
 
 | Metric | Value |
 |---|---|
@@ -458,7 +458,7 @@ If you use this work in academic research, please cite:
 
 **Key references this work builds upon:**
 - Redmon, J., et al. "You Only Look Once: Unified, Real-Time Object Detection." CVPR 2016.
-- Google. "TensorFlow Lite: On-Device ML for Mobile and Edge Devices." 2019.
+- Google. "YOLOv8n / TensorRT FP16: On-Device ML for Mobile and Edge Devices." 2019.
 - ArduPilot Development Team. "ArduPilot Autopilot Suite." https://ardupilot.org
 - Venâncio, P. V. A. B., et al. *An Automatic Fire Detection System Based on Deep CNNs for Low-Power Devices.* (DFire Dataset)
 - Chen, X., et al. *Wildland Fire Detection and Monitoring Using a Drone-Collected RGB/IR Image Dataset.* IEEE Access, 2022. (FLAME Dataset)
