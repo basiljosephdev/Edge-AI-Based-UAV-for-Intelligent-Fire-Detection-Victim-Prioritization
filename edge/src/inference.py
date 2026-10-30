@@ -2,13 +2,6 @@
 inference.py — Runs the two TensorRT-accelerated models (fire/smoke detector
 and victim posture detector) against a camera frame and returns decoded
 detections.
-
-Swapped from TFLite to TensorRT: same YOLO-style output decoding as before
-(box + per-class scores in one tensor), just backed by trt_engine.TRTModel
-instead of the TFLite interpreter. If your exported engine's output layout
-differs (e.g. NMS baked into the ONNX export via `model.export(..., nms=True)`),
-skip `_decode_yolo_output` entirely and read boxes/scores/classes straight
-from the output tensor instead.
 """
 
 import numpy as np

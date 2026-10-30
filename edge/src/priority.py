@@ -17,8 +17,6 @@ POSTURE_VULNERABILITY = {
     "Lying": 1.0,
     "Sitting": 0.75,
     "Standing": 0.5,
-    "Walking": 0.25,
-    "Running": 0.1,
 }
 
 # Priority-score thresholds -> severity class label (mirrors the posture

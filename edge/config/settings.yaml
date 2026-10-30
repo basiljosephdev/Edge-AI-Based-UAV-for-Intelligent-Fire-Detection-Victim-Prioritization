@@ -24,21 +24,20 @@ models:
   # models/training/build_tensorrt_engine.sh) — never copy a .engine built
   # on a different device or JetPack version, it will fail to load.
   fire_model_path: models/fire_detector.engine
-  posture_model_path: models/posture_detector.engine
+  posture_model_path: models/custom_posture_detector.engine
   # NOTE: order confirmed from the Kaggle D-Fire data.yaml's `names:` field —
   # class 0 = smoke, class 1 = fire. This MUST match the order your actual
-  # trained model outputs, or fire/smoke will be swapped in every log and
-  # priority calculation. If you retrain on a different dataset, re-check this.
+  # trained model outputs, or fire/smoke will be swapped in every log.
   fire_classes: [smoke, fire]
-  posture_classes: [Lying, Sitting, Standing, Walking, Running]
+  posture_classes: [Lying, Sitting, Standing]
   score_threshold: 0.45
   nms_iou_threshold: 0.45
 
 priority_weights:
-  posture:   0.5          # w1
+  posture: 0.5            # w1
   proximity: 0.3          # w2
   fire_severity: 0.2      # w3
-  d_max_meters: 30.0       # distance beyond which proximity contributes ~0
+  d_max_meters: 30.0       # distance threshold
 
 database:
   path: db/mission_log.sqlite

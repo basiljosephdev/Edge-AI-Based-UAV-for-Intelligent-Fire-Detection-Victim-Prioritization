@@ -45,18 +45,13 @@ def load_config(path=os.path.join(BASE_DIR, "config", "settings.yaml")):
         return yaml.safe_load(f)
 
 
-def annotate_frame(frame, fires, victims):
+def annotate_frame(frame, fires):
     for f in fires:
         x, y, w, h = f["bbox_px"]
+        label_text = f"{f['class'].upper()} {f['confidence']:.2f}"
         cv2.rectangle(frame, (int(x), int(y)), (int(x + w), int(y + h)), (0, 0, 255), 2)
-        cv2.putText(frame, f"FIRE {f['confidence']:.2f}", (int(x), int(y) - 6),
+        cv2.putText(frame, label_text, (int(x), int(y) - 6),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-    for v in victims:
-        x, y, w, h = v["bbox_px"]
-        cv2.rectangle(frame, (int(x), int(y)), (int(x + w), int(y + h)), (0, 255, 0), 2)
-        label = f"{v['class']} P={v.get('priority_score', 0):.2f} #{v.get('rescue_rank', '-')}"
-        cv2.putText(frame, label, (int(x), int(y) - 6),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
     return frame
 
 
@@ -73,7 +68,7 @@ def main():
     print("[EdgeFireUAV] Camera thread started.")
 
     engine = InferenceEngine(cfg["models"])
-    print("[EdgeFireUAV] Models loaded.")
+    print("[EdgeFireUAV] Fire Detection Model loaded.")
 
     mav = MavlinkClient(cfg["serial"]["port"], cfg["serial"]["baud"]).start()
     print(f"[EdgeFireUAV] MAVLink connected on {cfg['serial']['port']}.")
@@ -110,20 +105,14 @@ def main():
                 time.sleep(0.05)
                 continue
 
-            fire_dets, victim_dets = engine.run(frame)
+            fire_dets = engine.run(frame)
             telemetry = mav.get_telemetry()
 
             for f in fire_dets:
                 f["gps"] = project_detection_to_gps(f["center_px"], frame_w, frame_h, telemetry, cam_cfg)
-            for v in victim_dets:
-                v["gps"] = project_detection_to_gps(v["center_px"], frame_w, frame_h, telemetry, cam_cfg)
-
-            ranked_victims = compute_priorities(victim_dets, fire_dets, cfg["priority_weights"])
 
             if fire_dets:
                 logger.log_fire_zones(fire_dets)
-            if ranked_victims:
-                logger.log_victims(ranked_victims)
 
             streamer.push({
                 "type": "telemetry_update",
@@ -135,17 +124,10 @@ def main():
                      "severity_normalized": f["severity_normalized"]}
                     for f in fire_dets if f["gps"] is not None
                 ],
-                "victims": [
-                    {k: v[k] for k in (
-                        "gps", "class", "priority_score", "severity_class", "rescue_rank",
-                        "distance_to_nearest_fire_m",
-                    ) if k in v}
-                    for v in ranked_victims
-                ],
             })
 
             if args.debug:
-                annotated = annotate_frame(frame, fire_dets, victim_dets)
+                annotated = annotate_frame(frame, fire_dets)
                 cv2.imshow("EdgeFireUAV (debug)", annotated)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break

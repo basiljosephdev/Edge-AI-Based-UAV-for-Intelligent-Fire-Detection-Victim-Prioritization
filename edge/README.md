@@ -11,20 +11,15 @@ on, so this can't be a single "run this script" step:
 
 | Step | Where it runs | Script |
 |---|---|---|
-| 1. Train | PC / cloud GPU | `models/training/train_fire_detector.py`, `train_posture_detector.py` |
+| 1. Train | PC / cloud GPU | `models/training/train_fire_detector.py` |
 | 2. Export to ONNX | Same PC/GPU | `models/training/export_onnx.py` |
-| 3. Copy the `.onnx` file(s) to the Nano | — | `scp` / USB drive |
+| 3. Copy the `.onnx` file to the Nano | — | `scp` / USB drive |
 | 4. Build the `.engine` | **On the Jetson Nano itself** | `models/training/build_tensorrt_engine.sh` |
 | 5. Move `.engine` into `edge/models/`, run `main.py` | Jetson Nano | — |
 
-**Datasets**: fire detection can use DFire out of the box (already in YOLO
-format — see the original repo's `DATASET.md`). Posture detection has no
-ready-made aerial dataset for the 5 classes — read the header comment in
-`train_posture_detector.py` before you start; it explains what you'll need
-to assemble yourself and roughly how.
+**Datasets**: fire detection can use DFire out of the box (already in YOLO format).
 
-**Model size**: use `yolov8n` (nano) as the base model for both — anything
-bigger won't hit usable FPS on a Nano even with TensorRT/FP16.
+**Model size**: use `yolov8n` (nano) as the base model — anything bigger won't hit usable FPS on a Nano even with TensorRT/FP16.
 
 ## Before running edge/main.py
 
