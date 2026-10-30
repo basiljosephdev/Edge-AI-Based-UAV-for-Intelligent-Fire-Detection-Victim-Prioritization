@@ -1,0 +1,159 @@
+================================================================================
+EdgeFireUAV — Project Modifications, Current Status & Roadmap Report
+================================================================================
+Generated: October 2026
+Project: EdgeFireUAV (Autonomous UAV Edge Fire & Victim Posture Detection System)
+Workspace: modify_this/
+
+--------------------------------------------------------------------------------
+1. SUMMARY OF MODIFICATIONS TO THE DATASET
+--------------------------------------------------------------------------------
+Original Source Data:
+- Location: Dataset/
+  * Dataset/Atomic/ (Individual human actions & postures)
+  * Dataset/Human_Human/ (Multi-person interactions)
+- Raw Annotation Format (annotations_final/*.txt):
+  Comma-separated text files containing:
+  Person,<action_or_posture_label>,<track_id>,<xmin>,<ymin>,<box_width>,<box_height>
+  (e.g., "Person,Sitting,0,1130,1809,93,99", "Person,Handshaking,1,2061,1305,70,103")
+
+Modifications Implemented (via models/training/prepare_custom_posture_dataset.py):
+1. Exclusion of Interaction Data:
+   - Filtered out the 'Human_Human' subset by default.
+   - Explicitly excluded interaction labels ("handshaking", "hugging", "interaction")
+     to eliminate multi-person bounding-box confusion, overlapping boxes, and label noise.
+2. Consolidation to 3 Canonical Posture Classes:
+   - Class 0 (Lying):    Mapped from "lying"
+   - Class 1 (Sitting):  Mapped from "sitting"
+   - Class 2 (Standing): Consolidated upright/locomotion states:
+                         "standing", "walking", "running", "waving"
+3. Geometric Sanitization & Boundary Clipping:
+   - Discarded degenerate, zero-area, or tiny bounding boxes with dimensions < 6 pixels.
+   - Clipped bounding box coordinates strictly to image boundaries [0, img_w], [0, img_h].
+4. Conversion to Standard YOLO Format:
+   - Converted absolute pixel coordinates [xmin, ymin, width, height] into normalized
+     center coordinates: <class_id> <x_center> <y_center> <norm_w> <norm_h>
+     with all values normalized to [0.0, 1.0].
+5. Train/Validation Partitioning:
+   - Executed a deterministic 80% train / 20% validation split (random seed: 42).
+   - Built a YOLO-compliant dataset structure under:
+     models/training/custom_posture_dataset/
+       ├── images/train/, images/val/
+       ├── labels/train/, labels/val/
+       └── data.yaml (mapping classes 0: Lying, 1: Sitting, 2: Standing)
+
+Fire & Smoke Dataset:
+- Standardized on the D-Fire dataset with YOLO annotation format:
+  Class 0: smoke, Class 1: fire.
+
+
+--------------------------------------------------------------------------------
+2. SUMMARY OF MODIFICATIONS TO THE MODELS & TRAINING PIPELINE
+--------------------------------------------------------------------------------
+1. Architecture Selection:
+   - Selected YOLOv8n (nano) as the primary base architecture across all tasks to
+     guarantee real-time inference feasibility on edge compute (NVIDIA Jetson Nano).
+2. Custom Posture Detector Training:
+   - Created models/training/train_custom_posture_detector.py and Kaggle notebook
+     models/training/kaggle/custom_posture_detector_training.ipynb.
+   - Configured training with:
+     * Model: yolov8n.pt (pretrained weights transfer learning)
+     * Image size: 640x640
+     * Augmentation: degrees=15.0, fliplr=0.5
+     * Path resolution: automated correction for absolute vs. relative data.yaml paths.
+   - Training outcome (runs/detect/runs/custom_posture_detector/train-3):
+     * Precision: 0.993
+     * Recall: 0.999
+     * mAP50: 0.995
+     * mAP50-95: 0.799
+   - Exported model: models/training/custom_posture_detector.onnx (ONNX opset 12, simplified).
+3. Fire & Smoke Detector Training:
+   - Implemented models/training/train_fire_detector.py and Kaggle training notebook.
+   - Exported model: models/training/fire_detector.onnx.
+4. Human Biomechanics & Aspect Ratio Posture Strategies:
+   - In addition to standard bounding box classification, developed two complementary approaches:
+     a) Real-Time Skeletal Joint Kinematics (test_webcam.py):
+        - Utilizes yolov8n-pose.pt (17 COCO keypoints).
+        - Computes knee angles (hip-knee-ankle), torso-thigh angles, and spine orientation
+          to reliably separate Sitting vs. Standing vs. Lying even when feet/legs are partially occluded.
+     b) Aerial Geometry Aspect-Ratio Heuristic (Untitled.ipynb / Untitled1.ipynb):
+        - Classifies victim posture based on bounding box height-to-width ratio:
+          Standing (h/w >= 1.35), Sitting (0.75 <= h/w < 1.35), Lying (h/w < 0.75).
+5. Tooling & Script Fixes:
+   - Created scratch/fix_notebooks.py and scratch/update_weight_paths.py to dynamically
+     resolve best.pt weight locations and apply class filters to prevent syntax issues.
+
+
+--------------------------------------------------------------------------------
+3. CURRENT SYSTEM STATUS — WHAT IS WORKING
+--------------------------------------------------------------------------------
+[x] Dataset Preparation:
+    - Dataset conversion script (prepare_custom_posture_dataset.py) executes cleanly,
+      generating clean YOLO posture sets with data.yaml.
+
+[x] Model Training & Export:
+    - Custom posture model and fire detector trained successfully.
+    - Export to ONNX format completed (custom_posture_detector.onnx and fire_detector.onnx).
+    - Validation metrics on the posture dataset show high accuracy (>99% mAP50).
+
+[x] Local Testing & Validation:
+    - test_webcam.py provides real-time webcam tracking with posture overlays, skeleton
+      display toggles ('k'), and model mode switching ('m').
+    - Jupyter notebooks (Untitled.ipynb and Untitled1.ipynb) demonstrate dual-detection
+      (fire/smoke and posture) on sample aerial images (test1.jpg, test2.jpg) with high-res inference.
+
+[x] Edge Architecture Codebase (edge/):
+    - Complete Jetson Nano edge application structured:
+      * edge/main.py: Main loop orchestrating camera, inference, telemetry, priority scoring, logging, streaming.
+      * edge/src/camera.py: GStreamer CSI camera thread for Raspberry Pi Camera Module V2 (IMX219).
+      * edge/src/inference.py: Dual TensorRT engine wrapper with NMS and class decoding.
+      * edge/src/gps_projector.py: Ray-casting geolocation projecting 2D pixel coordinates to GPS lat/lon
+        using UAV altitude, roll, pitch, yaw, and camera FOV.
+      * edge/src/priority.py: Triage calculation weighting victim posture (Lying > Sitting > Standing),
+        fire proximity, and fire severity.
+      * edge/src/mavlink_client.py: Serial/UDP MAVLink communication with Pixhawk flight controller.
+      * edge/src/logger.py: Local SQLite persistence (missions, victims, fire_zones).
+      * edge/src/streamer.py: WebSocket broadcast of real-time telemetry and detection payloads (ws://host:8765).
+
+
+--------------------------------------------------------------------------------
+4. WHAT NEEDS WORKING — GAPS, LIMITATIONS & NEXT STEPS
+--------------------------------------------------------------------------------
+1. TensorRT Engine Compilation on Jetson Hardware:
+   - Status: Pending hardware execution.
+   - Reason: TensorRT engines (.engine) are strictly hardware- and TensorRT version-specific.
+     The ONNX files must be copied to the Jetson Nano, and models/training/build_tensorrt_engine.sh
+     must be executed on the physical Jetson device to produce edge/models/*.engine.
+
+2. Dual-Model Inference Latency on Jetson Nano:
+   - Status: Needs optimization / benchmarking.
+   - Limitation: Jetson Nano features a 128-core Maxwell GPU and 4GB shared memory.
+     Running TWO distinct YOLOv8 models sequentially per frame (Fire detector + Posture detector)
+     may drop throughput below the target 10–15 FPS.
+   - Recommended Solutions:
+     a) Train a Unified Single-Model Architecture: Combine Fire, Smoke, Lying, Sitting,
+        and Standing into a single 5-class YOLO model to eliminate redundant backbone forward passes.
+     b) Temporal Interleaving: Run fire detection every frame, and posture detection every 2–3 frames.
+
+3. Dataset Domain Adaptation for High-Altitude Aerial Views:
+   - Status: Needs domain expansion.
+   - Limitation: The Atomic dataset consists largely of surveillance/ground-level camera angles.
+     When the drone flies at higher altitudes (e.g., >20m) or steep nadir angles with heavy smoke,
+     victims occupy very few pixels, leading to potential misclassifications.
+   - Recommended Solutions:
+     * Augment training with top-down drone datasets (e.g., VisDrone, DroneSurveillance).
+     * Incorporate synthetic overhead rotations and scale variations during training.
+
+4. Physical Hardware Integration & Field Calibration:
+   - Hardware Hookup: Connect Jetson Nano UART (/dev/ttyTHS1) to Pixhawk TELEM2 port at 921600 baud.
+   - Camera Alignment: Fine-tune camera extrinsic mounting angles and FOV calibration parameters
+     in edge/config/settings.yaml to prevent GPS projection drift.
+   - Systemd Service Deployment: Validate headless auto-start on boot via edge/systemd service.
+
+5. Upstream Ground Control Station (GCS) & Reporting:
+   - While edge/ logs mission data to SQLite and emits JSON reports on shutdown, the web-based GCS
+     dashboard and automated PDF mission report generator remain to be finalized on the ground station side.
+
+================================================================================
+End of Report
+================================================================================
